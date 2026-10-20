@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deepak Vision AI</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+
+<style>
+:root {
+    --bg: #080a13;
+    --panel: #111525;
+    --panel2: #171c30;
+    --border: #282e47;
+    --text: #f4f5ff;
+    --muted: #969dbb;
+    --accent: #a78bfa;
+    --accent2: #6d5dfc;
+    --green: #48e0a4;
+    --red: #ff758f;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background:
+        radial-gradient(ellipse at top left, #25204b 0%, transparent 38%),
+        var(--bg);
+    color: var(--text);
+    font-family: Inter, Segoe UI, Arial, sans-serif;
+    min-height: 100vh;
+}
+
+button, input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(8,10,19,.91);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
+    padding: 17px 5%;
+}
+
+.header-inner {
+    max-width: 1500px;
+    margin: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #c4b5fd, #6655f5);
+    color: #100c28;
+    font-size: 23px;
+    font-weight: 900;
+}
+
+.brand h1 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: -.6px;
+}
+
+.brand p {
+    margin: 4px 0 0;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.status-dot {
+    width: 9px;
+    height: 9px;
+    background: #777;
+    border-radius: 50%;
+}
+
+.status-dot.ready {
+    background: var(--green);
+    box-shadow: 0 0 12px #48e0a477;
+}
+
+main {
+    max-width: 1500px;
+    margin: auto;
+    padding: 34px 5% 70px;
+}
+
+.hero {
+    margin-bottom: 30px;
+}
+
+.eyebrow {
+    color: var(--accent);
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 2px;
+}
+
+.hero h2 {
+    margin: 12px 0;
+    font-size: clamp(29px, 4vw, 46px);
+    letter-spacing: -1.8px;
+}
+
+.hero h2 span {
+    color: var(--accent);
+}
+
+.hero p {
+    color: var(--muted);
+    line-height: 1.7;
+    max-width: 780px;
+}
+
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.7fr) minmax(300px, .8fr);
+    gap: 22px;
+    align-items: start;
+}
+
+.card {
+    background: rgba(17,21,37,.94);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.card-head {
+    padding: 19px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.card-head h3 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.card-body {
+    padding: 22px;
+}
+
+.upload-zone {
+    border: 1.5px dashed #49466e;
+    background: #15152a;
+    border-radius: 15px;
+    padding: 29px 16px;
+    text-align: center;
+    transition: .2s;
+}
+
+.upload-zone.dragging {
+    border-color: var(--accent);
+    background: #211d3c;
+}
+
+.upload-icon {
+    font-size: 36px;
+    margin-bottom: 10px;
+}
+
+.upload-zone h3 {
+    font-size: 16px;
+    margin: 8px 0;
+}
+
+.upload-zone p {
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.btn {
+    border: 1px solid var(--border);
+    background: var(--panel2);
+    color: var(--text);
+    padding: 11px 15px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    transition: .2s;
+}
+
+.btn:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #a78bfa, #7561fa);
+    color: #100c28;
+    border: none;
+}
+
+.btn:disabled {
+    opacity: .45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 15px;
+}
+
+.image-stage {
+    min-height: 300px;
+    max-height: 650px;
+    overflow: auto;
+    margin-top: 20px;
+    border-radius: 13px;
+    background:
+        linear-gradient(45deg, #141827 25%, transparent 25%),
+        linear-gradient(-45deg, #141827 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #141827 75%),
+        linear-gradient(-45deg, transparent 75%, #141827 75%);
+    background-size: 22px 22px;
+    background-position: 0 0, 0 11px, 11px -11px, -11px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 35px 15px;
+    color: var(--muted);
+    line-height: 1.8;
+    font-size: 13px;
+}
+
+.canvas-wrap {
+    position: relative;
+    display: none;
+    line-height: 0;
+}
+
+#imageCanvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+#originalImage {
+    display: none;
+}
+
+.progress-area {
+    margin-top: 15px;
+    display: none;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.progress-track {
+    height: 6px;
+    border-radius: 10px;
+    background: #292d43;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #7561fa, #b8a6ff);
+    transition: width .3s;
+}
+
+.message {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.6;
+    display: none;
+}
+
+.message.error {
+    display: block;
+    color: #ffb0be;
+    background: #3b1827;
+}
+
+.message.info {
+    display: block;
+    color: #d1c6ff;
+    background: #201b3a;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.stat {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    padding: 15px 12px;
+    border-radius: 13px;
+}
+
+.stat-label {
+    color: var(--muted);
+    font-size: 11px;
+}
+
+.stat-value {
+    font-size: 25px;
+    font-weight: 800;
+    margin-top: 9px;
+    overflow-wrap: anywhere;
+}
+
+.stat-sub {
+    color: var(--muted);
+    font-size: 10px;
+    margin-top: 5px;
+}
+
+.section-title {
+    font-size: 13px;
+    font-weight: 800;
+    margin: 23px 0 13px;
+}
+
+.section-title:first-child {
+    margin-top: 0;
+}
+
+.empty-list {
+    color: var(--muted);
+    font-size: 12px;
+    padding: 16px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    line-height: 1.7;
+}
+
+.detection-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.detection-item {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 12px;
+}
+
+.detection-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12px;
+}
+
+.object-name {
+    font-weight: 800;
+    text-transform: capitalize;
+}
+
+.confidence {
+    color: var(--green);
+    font-weight: 800;
+}
+
+.conf-track {
+    height: 4px;
+    margin-top: 10px;
+    border-radius: 10px;
+    background: #30344b;
+    overflow: hidden;
+}
+
+.conf-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #6e61f4, #48e0a4);
+}
+
+.object-details {
+    margin-top: 8px;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+.color-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.color-item {
+    width: 60px;
+    text-align: center;
+}
+
+.color-swatch {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    margin: 0 auto 6px;
+    border: 1px solid #ffffff24;
+}
+
+.color-name {
+    font-size: 10px;
+    color: var(--muted);
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+}
+
+.info-box {
+    background: var(--panel2);
+    padding: 12px;
+    border-radius: 10px;
+}
+
+.info-box .label {
+    color: var(--muted);
+    font-size: 10px;
+}
+
+.info-box .value {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.scene-box {
+    background: #191a31;
+    border: 1px solid #3c3564;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 12px;
+    line-height: 1.8;
+    color: #ded9ff;
+}
+
+.scene-box strong {
+    color: #c4b5fd;
+}
+
+.filter-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.filter-row label {
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.filter-row input {
+    width: 100%;
+    accent-color: var(--accent2);
+}
+
+.filter-row output {
+    color: var(--accent);
+    font-size: 11px;
+    min-width: 35px;
+    text-align: right;
+}
+
+.search-input {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: #0b0e1a;
+    color: var(--text);
+    padding: 10px;
+    border-radius: 9px;
+    outline: none;
+    margin-bottom: 13px;
+    font-size: 12px;
+}
+
+.search-input:focus {
+    border-color: var(--accent);
+}
+
+footer {
+    max-width: 1500px;
+    margin: auto;
+    padding: 0 5% 30px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.8;
+}
+
+footer strong {
+    color: var(--accent);
+}
+
+@media (max-width: 950px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 500px) {
+    main {
+        padding: 24px 4% 45px;
+    }
+
+    header {
+        padding: 14px 4%;
+    }
+
+    .stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .stat-value {
+        font-size: 19px;
+    }
+
+    .card-body {
+        padding: 15px;
+    }
+
+    .status {
+        font-size: 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-inner">
+        <div class="brand">
+            <div class="logo">D</div>
+            <div>
+                <h1>Deepak Vision AI</h1>
+                <p>Browser-Based Computer Vision</p>
+            </div>
+        </div>
+
+        <div class="status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="modelStatus">Loading AI model...</span>
+        </div>
+    </div>
+</header>
+
+<main>
+    <section class="hero">
+        <div class="eyebrow">Computer Vision Studio</div>
+        <h2>See your images <span>differently.</span></h2>
+        <p>
+            Detect supported objects, inspect confidence scores, examine image
+            properties, and explore visual patterns. Processing runs in your
+            browser after the required model has loaded.
+        </p>
+    </section>
+
+    <div class="layout">
+
+        <section class="card">
+            <div class="card-head">
+                <h3>Image Analysis Workspace</h3>
+                <span style="font-size:11px;color:var(--muted)" id="imageState">
+                    No image selected
+                </span>
+            </div>
+
+            <div class="card-body">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">🖼️</div>
+                    <h3>Drop your image here</h3>
+                    <p>
+                        Or choose an image from your device.<br>
+                        JPG, PNG, WEBP and other browser-supported image formats.
+                    </p>
+                    <button class="btn btn-primary" id="chooseBtn">
+                        Choose Image
+                    </button>
+                    <input id="fileInput" type="file" accept="image/*" hidden>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" id="analyzeBtn" disabled>
+                        Analyze Image
+                    </button>
+                    <button class="btn" id="downloadBtn" disabled>
+                        Download Result
+                    </button>
+                    <button class="btn" id="zoomBtn" disabled>
+                        Zoom Image
+                    </button>
+                    <button class="btn" id="resetBtn">
+                        Reset
+                    </button>
+                </div>
+
+                <div class="filter-row" style="margin-top:20px">
+                    <label for="threshold">Minimum confidence</label>
+                    <input id="threshold" type="range" min="10" max="90" value="40">
+                    <output id="thresholdValue">40%</output>
+                </div>
+
+                <div class="image-stage" id="imageStage">
+                    <div class="empty-state" id="emptyState">
+                        <div style="font-size:42px">🔬</div>
+                        <strong>Your analysis will appear here</strong><br>
+                        Upload an image to get started.
+                    </div>
+
+                    <div class="canvas-wrap" id="canvasWrap">
+                        <canvas id="imageCanvas"></canvas>
+                    </div>
+                </div>
+
+                <div class="progress-area" id="progressArea">
+                    <div class="progress-label">
+                        <span id="progressText">Analyzing image...</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="progress-track">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                </div>
+
+                <div class="message" id="message"></div>
+            </div>
+        </section>
+
+        <aside>
+
+            <section class="card">
+                <div class="card-head">
+                    <h3>Analysis Overview</h3>
+                </div>
+
+                <div class="card-body">
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-label">Objects</div>
+                            <div class="stat-value" id="objectCount">—</div>
+                            <div class="stat-sub">Detected</div>
+                        </div>
+
+                        <div class="stat">
+                            <div class="stat-label">Confidence</div>
+                            <div class="stat-value" id="averageConfidence">—</div>
+                            <div class="stat-sub">Average</div>
+                        </div>
+
+                        <div class="stat">
+                            <div class="stat-label">Colors</div>
+                            <div class="stat-value" id="colorCount">—</div>
+                            <div class="stat-sub">Dominant</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Scene Summary</div>
+                    <div class="scene-box" id="sceneSummary">
+                        Upload an image and run the analysis to generate a
+                        summary based on detected objects and image properties.
+                    </div>
+
+                    <div class="section-title">Image Properties</div>
+                    <div class="info-grid">
+                        <div class="info-box">
+                            <div class="label">Dimensions</div>
+                            <div class="value" id="dimensions">—</div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="label">Aspect Ratio</div>
+                            <div class="value" id="aspectRatio">—</div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="label">File Size</div>
+                            <div class="value" id="fileSize">—</div>
+                        </div>
+
+                        <div class="info-box">
+                            <div class="label">Image Orientation</div>
+                            <div class="value" id="orientation">—</div>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Dominant Colors</div>
+                    <div class="color-list" id="colorList">
+                        <div class="empty-list">Color analysis will appear here.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card" style="margin-top:20px">
+                <div class="card-head">
+                    <h3>Detected Objects</h3>
+                    <span id="listCount" style="font-size:11px;color:var(--muted)">
+                        0 items
+                    </span>
+                </div>
+
+                <div class="card-body">
+                    <input
+                        id="searchInput"
+                        class="search-input"
+                        placeholder="Search detected objects..."
+                        type="search"
+                    >
+
+                    <div class="detection-list" id="detectionList">
+                        <div class="empty-list">
+                            No detections yet. Upload an image to begin.
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </aside>
+    </div>
+</main>
+
+<footer>
+    <strong>Deepak Vision AI</strong> — Browser-based image analysis.<br>
+    Uses TensorFlow.js and the COCO-SSD model. External CDN downloads are
+    required to load the libraries and model initially. No image is sent to
+    an AI API by this application.<br>
+    Results depend on the model's supported categories and are not guaranteed
+    to identify every object or correctly interpret every scene.
+</footer>
+
+<img id="originalImage" alt="Uploaded image">
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+
+const fileInput = $("fileInput");
+const uploadZone = $("uploadZone");
+const originalImage = $("originalImage");
+const canvas = $("imageCanvas");
+const ctx = canvas.getContext("2d");
+
+let model = null;
+let currentFile = null;
+let currentPredictions = [];
+let imageLoaded = false;
+let zoomed = false;
+let lastRunId = 0;
+
+const COLORS = [
+    "#48e0a4",
+    "#a78bfa",
+    "#ffb86b",
+    "#68b8ff",
+    "#ff758f",
+    "#f5e663",
+    "#57e8e8",
+    "#e99aff"
+];
+
+function setMessage(text, type = "info") {
+    const el = $("message");
+    el.textContent = text;
+    el.className = "message " + type;
+}
+
+function clearMessage() {
+    $("message").textContent = "";
+    $("message").className = "message";
+}
+
+function setProgress(percent, text) {
+    $("progressArea").style.display = "block";
+    $("progressBar").style.width = percent + "%";
+    $("progressPercent").textContent = percent + "%";
+    $("progressText").textContent = text;
+}
+
+function hideProgress() {
+    $("progressArea").style.display = "none";
+}
+
+function updateStatus(text, ready) {
+    $("modelStatus").textContent = text;
+    $("statusDot").classList.toggle("ready", ready);
+}
+
+async function loadModel() {
+    try {
+        updateStatus("Loading AI model...", false);
+
+        if (!window.tf || !window.cocoSsd) {
+            throw new Error(
+                "The AI libraries could not load. Check your internet connection and refresh."
+            );
+        }
+
+        await tf.ready();
+
+        model = await cocoSsd.load({
+            base: "lite_mobilenet_v2"
+        });
+
+        updateStatus("AI model ready", true);
+        $("analyzeBtn").disabled = !imageLoaded;
+
+        if (imageLoaded) {
+            setMessage("Model ready. You can analyze your image.", "info");
+        }
+    } catch (error) {
+        console.error(error);
+        updateStatus("Model unavailable", false);
+        setMessage(
+            "Could not load the AI model. Check your internet connection, then refresh the page. " +
+            "Details: " + error.message,
+            "error"
+        );
+    }
+}
+
+$("chooseBtn").addEventListener("click", () => fileInput.click());
+
+fileInput.addEventListener("change", event => {
+    const file = event.target.files && event.target.files[0];
+    if (file) loadImageFile(file);
+});
+
+uploadZone.addEventListener("dragover", event => {
+    event.preventDefault();
+    uploadZone.classList.add("dragging");
+});
+
+uploadZone.addEventListener("dragleave", () => {
+    uploadZone.classList.remove("dragging");
+});
+
+uploadZone.addEventListener("drop", event => {
+    event.preventDefault();
+    uploadZone.classList.remove("dragging");
+
+    const file = event.dataTransfer.files[0];
+
+    if (file) {
+        loadImageFile(file);
+    }
+});
+
+function loadImageFile(file) {
+    clearMessage();
+
+    if (!file.type.startsWith("image/")) {
+        setMessage("Please choose a valid image file.", "error");
+        return;
+    }
+
+    const maxBytes = 20 * 1024 * 1024;
+
+    if (file.size > maxBytes) {
+        setMessage("Please choose an image smaller than 20 MB.", "error");
+        return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+
+    originalImage.onload = () => {
+        URL.revokeObjectURL(objectUrl);
+
+        currentFile = file;
+        imageLoaded = true;
+        currentPredictions = [];
+        zoomed = false;
+
+        $("emptyState").style.display = "none";
+        $("canvasWrap").style.display = "block";
+        $("imageState").textContent = "Image loaded";
+        $("analyzeBtn").disabled = !model;
+        $("downloadBtn").disabled = true;
+        $("zoomBtn").disabled = false;
+
+        showOriginalImage();
+        updateImageProperties(file);
+        clearAnalysisResults();
+
+        if (model) {
+            setMessage(
+                "Image loaded successfully. Click Analyze Image to begin.",
+                "info"
+            );
+        } else {
+            setMessage(
+                "Image loaded. Waiting for the AI model to finish loading.",
+                "info"
+            );
+        }
+    };
+
+    originalImage.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        setMessage("The browser could not open this image.", "error");
+    };
+
+    originalImage.src = objectUrl;
+}
+
+function getCanvasDimensions() {
+    const maxDimension = zoomed ? 1800 : 1200;
+    const scale = Math.min(
+        1,
+        maxDimension / Math.max(
+            originalImage.naturalWidth,
+            originalImage.naturalHeight
+        )
+    );
+
+    return {
+        width: Math.round(originalImage.naturalWidth * scale),
+        height: Math.round(originalImage.naturalHeight * scale)
+    };
+}
+
+function showOriginalImage() {
+    const size = getCanvasDimensions();
+
+    canvas.width = size.width;
+    canvas.height = size.height;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+        originalImage,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+}
+
+$("zoomBtn").addEventListener("click", () => {
+    if (!imageLoaded) return;
+
+    zoomed = !zoomed;
+    $("zoomBtn").textContent = zoomed ? "Fit Image" : "Zoom Image";
+
+    redrawCanvas();
+});
+
+function redrawCanvas() {
+    if (!imageLoaded) return;
+
+    showOriginalImage();
+
+    if (!currentPredictions.length) return;
+
+    drawPredictions(currentPredictions);
+}
+
+$("analyzeBtn").addEventListener("click", analyzeImage);
+
+async function analyzeImage() {
+    if (!model || !imageLoaded) return;
+
+    const runId = ++lastRunId;
+
+    $("analyzeBtn").disabled = true;
+    $("downloadBtn").disabled = true;
+    clearMessage();
+
+    try {
+        setProgress(10, "Preparing image...");
+
+        await new Promise(resolve => setTimeout(resolve, 30));
+
+        if (runId !== lastRunId) return;
+
+        showOriginalImage();
+
+        setProgress(35, "Detecting supported objects...");
+
+        const predictions = await model.detect(originalImage);
+
+        if (runId !== lastRunId) return;
+
+        setProgress(70, "Analyzing colors and image properties...");
+
+        const threshold = Number($("threshold").value) / 100;
+
+        currentPredictions = predictions
+            .filter(item => item.score >= threshold)
+            .sort((a, b) => b.score - a.score);
+
+        showOriginalImage();
+        drawPredictions(currentPredictions);
+
+        renderObjectList(currentPredictions);
+        renderOverview(currentPredictions);
+        analyzeColors();
+        renderSceneSummary(currentPredictions);
+
+        setProgress(100, "Analysis complete");
+
+        $("imageState").textContent = "Analysis complete";
+        $("downloadBtn").disabled = false;
+
+        setMessage(
+            `Analysis complete. The model detected ${currentPredictions.length} ` +
+            "supported object instance(s) above your confidence threshold. " +
+            "This is not a guarantee that every object in the image was found.",
+            "info"
+        );
+
+        setTimeout(hideProgress, 1000);
+
+    } catch (error) {
+        console.error(error);
+        setMessage(
+            "Image analysis failed: " + error.message,
+            "error"
+        );
+        hideProgress();
+    } finally {
+        if (runId === lastRunId) {
+            $("analyzeBtn").disabled = !model;
+        }
+    }
+}
+
+function drawPredictions(predictions) {
+    const sx = canvas.width / originalImage.naturalWidth;
+    const sy = canvas.height / originalImage.naturalHeight;
+
+    predictions.forEach((prediction, index) => {
+        const [x, y, width, height] = prediction.bbox;
+        const color = COLORS[index % COLORS.length];
+
+        const px = x * sx;
+        const py = y * sy;
+        const pw = width * sx;
+        const ph = height * sy;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = Math.max(2, canvas.width / 450);
+        ctx.strokeRect(px, py, pw, ph);
+
+        const label =
+            prediction.class +
+            " " +
+            Math.round(prediction.score * 100) +
+            "%";
+
+        ctx.font = "bold 13px Segoe UI, Arial";
+        const textWidth = ctx.measureText(label).width;
+        const labelHeight = 25;
+
+        const labelY = Math.max(labelHeight, py);
+
+        ctx.fillStyle = color;
+        ctx.fillRect(
+            px,
+            labelY - labelHeight,
+            textWidth + 12,
+            labelHeight
+        );
+
+        ctx.fillStyle = "#101020";
+        ctx.fillText(label, px + 6, labelY - 8);
+    });
+}
+
+function renderObjectList(predictions) {
+    const list = $("detectionList");
+    const query = $("searchInput").value.trim().toLowerCase();
+
+    const filtered = predictions.filter(item =>
+        item.class.toLowerCase().includes(query)
+    );
+
+    $("listCount").textContent =
+        filtered.length + " item" + (filtered.length === 1 ? "" : "s");
+
+    if (!filtered.length) {
+        list.innerHTML =
+            '<div class="empty-list">' +
+            (predictions.length
+                ? "No detected objects match your search."
+                : "No supported objects were detected above the current confidence threshold.") +
+            "</div>";
+        return;
+    }
+
+    list.innerHTML = "";
+
+    filtered.forEach((item, index) => {
+        const percentage = Math.round(item.score * 100);
+        const [x, y, width, height] = item.bbox;
+
+        const element = document.createElement("div");
+        element.className = "detection-item";
+
+        const top = document.createElement("div");
+        top.className = "detection-top";
+
+        const name = document.createElement("span");
+        name.className = "object-name";
+        name.textContent = item.class;
+
+        const score = document.createElement("span");
+        score.className = "confidence";
+        score.textContent = percentage + "%";
+
+        top.append(name, score);
+
+        const track = document.createElement("div");
+        track.className = "conf-track";
+
+        const fill = document.createElement("div");
+        fill.className = "conf-fill";
+        fill.style.width = percentage + "%";
+        track.appendChild(fill);
+
+        const details = document.createElement("div");
+        details.className = "object-details";
+        details.textContent =
+            "Box: x " + Math.round(x) +
+            ", y " + Math.round(y) +
+            " · Width " + Math.round(width) +
+            " px · Height " + Math.round(height) + " px";
+
+        element.append(top, track, details);
+
+        element.addEventListener("click", () => {
+            if (index >= 0) {
+                const selected = filtered[index];
+
+                if (!selected) return;
+
+                showOriginalImage();
+
+                const [bx, by, bw, bh] = selected.bbox;
+
+                const sx = canvas.width / originalImage.naturalWidth;
+                const sy = canvas.height / originalImage.naturalHeight;
+
+                ctx.strokeStyle = "#ffffff";
+                ctx.lineWidth = 4;
+                ctx.strokeRect(bx * sx, by * sy, bw * sx, bh * sy);
+            }
+        });
+
+        list.appendChild(element);
+    });
+}
+
+$("searchInput").addEventListener("input", () => {
+    renderObjectList(currentPredictions);
+});
+
+$("threshold").addEventListener("input", () => {
+    $("thresholdValue").textContent = $("threshold").value + "%";
+
+    if (!model || !imageLoaded || !currentPredictions.length) return;
+
+    analyzeImage();
+});
+
+function renderOverview(predictions) {
+    $("objectCount").textContent = predictions.length;
+
+    if (!predictions.length) {
+        $("averageConfidence").textContent = "—";
+        return;
+    }
+
+    const average =
+        predictions.reduce((sum, item) => sum + item.score, 0) /
+        predictions.length;
+
+    $("averageConfidence").textContent =
+        Math.round(average * 100) + "%";
+}
+
+function updateImageProperties(file) {
+    const width = originalImage.naturalWidth;
+    const height = originalImage.naturalHeight;
+    const gcdValue = gcd(width, height);
+
+    $("dimensions").textContent = width + " × " + height;
+
+    $("aspectRatio").textContent =
+        (width / gcdValue) + ":" + (height / gcdValue);
+
+    $("fileSize").textContent = formatBytes(file.size);
+
+    $("orientation").textContent =
+        width > height ? "Landscape" :
+        height > width ? "Portrait" :
+        "Square";
+}
+
+function gcd(a, b) {
+    while (b !== 0) {
+        const remainder = a % b;
+        a = b;
+        b = remainder;
+    }
+
+    return a || 1;
+}
+
+function formatBytes(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) {
+        return (bytes / 1024).toFixed(1) + " KB";
+    }
+
+    return (bytes / (1024 * 1024)).toFixed(2) + " MB";
+}
+
+/*
+ * Dominant-color analysis:
+ * Samples pixels from the displayed image and groups similar RGB values.
+ * These are approximate color clusters, not semantic object colors.
+ */
+
+function analyzeColors() {
+    const sampleCanvas = document.createElement("canvas");
+    const sampleCtx = sampleCanvas.getContext("2d", {
+        willReadFrequently: true
+    });
+
+    const targetWidth = 100;
+    const targetHeight = Math.max(
+        1,
+        Math.round(
+            originalImage.naturalHeight /
+            originalImage.naturalWidth *
+            targetWidth
+        )
+    );
+
+    sampleCanvas.width = targetWidth;
+    sampleCanvas.height = Math.min(targetHeight, 100);
+
+    sampleCtx.drawImage(
+        originalImage,
+        0,
+        0,
+        sampleCanvas.width,
+        sampleCanvas.height
+    );
+
+    const imageData = sampleCtx.getImageData(
+        0,
+        0,
+        sampleCanvas.width,
+        sampleCanvas.height
+    );
+
+    const buckets = new Map();
+    const pixels = imageData.data;
+
+    for (let i = 0; i < pixels.length; i += 4 * 3) {
+        const r = pixels[i];
+        const g = pixels[i + 1];
+        const b = pixels[i + 2];
+
+        const qr = Math.round(r / 32) * 32;
+        const qg = Math.round(g / 32) * 32;
+        const qb = Math.round(b / 32) * 32;
+
+        const key = [
+            Math.min(255, qr),
+            Math.min(255, qg),
+            Math.min(255, qb)
+        ].join(",");
+
+        buckets.set(key, (buckets.get(key) || 0) + 1);
+    }
+
+    const dominant = [...buckets.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+    $("colorCount").textContent = dominant.length;
+
+    const list = $("colorList");
+    list.innerHTML = "";
+
+    dominant.forEach(([rgb]) => {
+        const parts = rgb.split(",").map(Number);
+        const hex = "#" + parts
+            .map(value => value.toString(16).padStart(2, "0"))
+            .join("");
+
+        const item = document.createElement("div");
+        item.className = "color-item";
+
+        const swatch = document.createElement("div");
+        swatch.className = "color-swatch";
+        swatch.style.background = hex;
+        swatch.title = hex;
+
+        const name = document.createElement("div");
+        name.className = "color-name";
+        name.textContent = hex.toUpperCase();
+
+        item.append(swatch, name);
+        list.appendChild(item);
+    });
+}
+
+/*
+ * Conservative, rule-based summary.
+ * It describes the actual model predictions without pretending
+ * to understand activities or objects that were not detected.
+ */
+
+function renderSceneSummary(predictions) {
+    const summary = $("sceneSummary");
+
+    if (!predictions.length) {
+        summary.textContent =
+            "The model did not identify any supported objects above " +
+            "the current confidence threshold. The image may contain " +
+            "unrecognized objects, an unfamiliar scene, small objects, " +
+            "or content that is difficult for this model. No detections " +
+            "does not mean the image is empty.";
+        return;
+    }
+
+    const counts = new Map();
+
+    predictions.forEach(item => {
+        counts.set(
+            item.class,
+            (counts.get(item.class) || 0) + 1
+        );
+    });
+
+    const groups = [...counts.entries()]
+        .sort((a, b) => b[1] - a[1]);
+
+    const description = groups.map(([name, count]) => {
+        return count + " " + pluralize(name, count);
+    });
+
+    const strongest = predictions[0];
+    const average = Math.round(
+        predictions.reduce((sum, item) => sum + item.score, 0) /
+        predictions.length * 100
+    );
+
+    const parts = [];
+
+    parts.push(
+        "The model detected " +
+        description.join(", ") +
+        "."
+    );
+
+    parts.push(
+        "The strongest individual prediction is " +
+        strongest.class +
+        " at " +
+        Math.round(strongest.score * 100) +
+        "% confidence."
+    );
+
+    parts.push(
+        "Average confidence across the displayed detections is " +
+        average +
+        "%."
+    );
+
+    parts.push(
+        "The image's dominant sampled colors are shown below."
+    );
+
+    parts.push(
+        "This summary is based on the model's supported categories. " +
+        "It does not independently establish the scene's exact location, " +
+        "the people's identities, actions, relationships, or the meaning " +
+        "of the image."
+    );
+
+    summary.textContent = parts.join(" ");
+}
+
+function pluralize(name, count) {
+    if (count === 1) return name;
+
+    const irregular = {
+        person: "people",
+        mouse: "mice"
+    };
+
+    return irregular[name] || name + "s";
+}
+
+function clearAnalysisResults() {
+    $("objectCount").textContent = "—";
+    $("averageConfidence").textContent = "—";
+    $("colorCount").textContent = "—";
+
+    $("dimensions").textContent = "—";
+    $("aspectRatio").textContent = "—";
+    $("fileSize").textContent = "—";
+    $("orientation").textContent = "—";
+
+    $("sceneSummary").textContent =
+        "Run the analysis to see a summary of model predictions.";
+
+    $("colorList").innerHTML =
+        '<div class="empty-list">Color analysis will appear here.</div>';
+
+    $("detectionList").innerHTML =
+        '<div class="empty-list">No detections yet.</div>';
+
+    $("listCount").textContent = "0 items";
+}
+
+$("downloadBtn").addEventListener("click", () => {
+    if (!imageLoaded) return;
+
+    const link = document.createElement("a");
+
+    link.download = "deepak-vision-ai-analysis.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+});
+
+$("resetBtn").addEventListener("click", () => {
+    lastRunId++;
+
+    fileInput.value = "";
+    currentFile = null;
+    currentPredictions = [];
+    imageLoaded = false;
+    zoomed = false;
+
+    originalImage.removeAttribute("src");
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    $("emptyState").style.display = "block";
+    $("canvasWrap").style.display = "none";
+    $("imageState").textContent = "No image selected";
+
+    $("analyzeBtn").disabled = true;
+    $("downloadBtn").disabled = true;
+    $("zoomBtn").disabled = true;
+    $("zoomBtn").textContent = "Zoom Image";
+
+    $("searchInput").value = "";
+
+    clearAnalysisResults();
+    clearMessage();
+    hideProgress();
+});
+
+loadModel();
+</script>
+
+</body>
+</html>
